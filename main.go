@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 const ROOT = "./"
@@ -27,6 +28,9 @@ func main() {
 	if err != nil {
 		printer.PrintError("Not continuing, could not open all files in project at " + project_root)
 		os.Exit(1)
+	} else if len(files) == 0 {
+		printer.PrintError("Not continuing, no GDScript files found." + project_root)
+		os.Exit(1)
 	}
 
 	printer.PrintNormal("GDScript files found:")
@@ -41,7 +45,7 @@ func main() {
 
 	backup_files(project_root, files)
 
-	// lint files
+	lint_files_st(files)
 
 }
 
@@ -76,9 +80,38 @@ func backup_files(local_root string, locations []string) error {
 	return nil
 }
 
-func lint_script(path string) error {
+func lint_files_mt(files []string) {
+	var wg sync.WaitGroup
 
-	//
+	ch := make(chan error)
 
-	return nil
+	go func() {
+		for state := range ch {
+			printer.PrintWarning("Error while linting: " + state.Error())
+		}
+	}()
+
+	for _, file := range files {
+		wg.Add(1)
+
+		go func(path string) {
+			defer wg.Done()
+			lint_file(path, ch)
+		}(file)
+	}
+
+	wg.Wait()
+
+	close(ch)
+
+	return
+}
+
+func lint_files_st(files []string) {
+	for _, file := range files {
+
+		lint_file(file, nil)
+	}
+
+	return
 }
