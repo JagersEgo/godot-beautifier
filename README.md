@@ -54,10 +54,10 @@ func _process(delta: float) -> void:
 class_name enemy
 
 func foo(delta: float) -> void:
-	position.y++
+	position.y += 1
 
 func bar(delta: float) -> void:
-	position.z--
+	position.z -= 1
 ```
 
 After:
@@ -86,11 +86,13 @@ func _process(delta: float) -> void:
 	var foo = "bar"
 	print(banana)
 
+
 func foo(delta: float) -> void:
-	position.y++
+	position.y += 1
+
 
 func bar(delta: float) -> void:
-	position.z--
+	position.z -= 1
 ```
 ## To do
 - Full adherence to style guidelines
