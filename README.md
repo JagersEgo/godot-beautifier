@@ -43,12 +43,12 @@ func _process(delta: float) -> void:
 
 # Attack range
 # Yeah thats the attack range
-@export range : int = 0
+@export var range : int = 0
 
-@export dmg : int = 0
+@export var dmg : int = 0
 
-@export speed : int = 0
-@export also_speed: int = 0
+@export var speed : int = 0
+@export var also_speed: int = 0
 
 
 class_name enemy
@@ -71,8 +71,8 @@ extends node
 
 @export dmg : int = 0
 
-@export speed : int = 0
-@export also_speed: int = 0
+@export  var speed : int = 0
+@export  var also_speed: int = 0
 
 # Fruits block
 @onready var fruit0 = "apple"
