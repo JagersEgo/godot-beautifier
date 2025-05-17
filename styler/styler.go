@@ -1,5 +1,8 @@
 package styler
 
+// TODO:
+// Block exports and onreadys and local vars in the tokeniser
+
 import (
 	"godot_linter/printer"
 	"os"
@@ -40,6 +43,9 @@ func LintFile(path string, ch chan error) {
 		printer.PPrintArray(t.Content)
 	}
 
+	det := Detokenise(tokens)
+	print(det)
+
 	// // Write edited file
 	// err = os.WriteFile(path, []byte(DETOKENISED), 0644)
 	// if err != nil {
@@ -61,10 +67,19 @@ func LintFile(path string, ch chan error) {
 
 // Add return typing
 
-func Detokenise(tokens []tk.Block) []string {
-	lines := []string{}
-	for _, token := range tokens {
-		lines = append(lines, token.Content...)
+func Detokenise(tokens []tk.Block) string {
+	file := ""
+	for i, token := range tokens {
+		file += strings.Join(token.Content, "\n")
+
+		if i+1 == len(tokens) {
+			break
+		}
+		file += "\n\n"
+		if token.Type == tk.Function || token.Type == tk.Init || token.Type == tk.Ready {
+			file += "\n"
+		}
+
 	}
-	return lines
+	return file
 }

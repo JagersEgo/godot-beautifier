@@ -150,6 +150,18 @@ func findBlockEnd(lines []string, idx int) int {
 	return i
 }
 
+// Find when a segment of lines that start with `id` ends
+func findSegmentEnd(lines []string, idx int, id string) int {
+	i := idx + 1
+	for ; i < len(lines); i++ {
+		// stop when indent back to <= base or blank
+		if !strings.HasPrefix(lines[i], id) {
+			return i - 1
+		}
+	}
+	return i
+}
+
 func find_docstring_end(lines []string, idx int) int {
 	i := idx + 1
 	for ; i < len(lines); i++ {
