@@ -1,6 +1,7 @@
 # About Godot Beautifier
 
 **Godot Beautifier** is a tool designed to automatically format GDScript code to improve readability and maintain consistency across Godot Engine projects.
+**Be careful, this project is new and may break code if it hits an edge case I havent thought of, this will back up your code but please back it up yourself too**
 
 ## Purpose
 
@@ -14,6 +15,7 @@ GDScript formatting can be inconsistent, especially when multiple developers con
 ## Features
 
 - Supports the Godot 4.x GDScript syntax
+- Puts a backup before making changes in your OS's temp directory
 - Command-line interface
 - Processes single files or entire godot project
 
