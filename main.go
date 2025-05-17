@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"godot_linter/styler"
 )
@@ -47,8 +48,10 @@ func main() {
 
 	backup_files(project_root, files)
 
-	lint_files_st(files)
-
+	start := time.Now() // Before line
+	lint_files_mt(files)
+	elapsed := time.Since(start) // After line
+	fmt.Printf("Execution took %s\n", elapsed)
 }
 
 func scan_gd_files(local_root string) ([]string, error) {

@@ -60,11 +60,17 @@ func Tokenize(lines []string) []tk.Block {
 			flush_above()
 
 		case strings.HasPrefix(line, "@export"):
-			blocks = append(blocks, make_block(tk.Export, consume_with_above(&linked_above, []string{line}...)))
+			end := findSegmentEnd(lines, i, "@export")
+			fnLines := lines[i : end+1]
+			blocks = append(blocks, make_block(tk.Export, consume_with_above(&linked_above, fnLines...)))
+			i = end
 			flush_above()
 
 		case strings.HasPrefix(line, "@onready"):
-			blocks = append(blocks, make_block(tk.Onready, consume_with_above(&linked_above, []string{line}...)))
+			end := findSegmentEnd(lines, i, "@onready")
+			fnLines := lines[i : end+1]
+			blocks = append(blocks, make_block(tk.Ready, consume_with_above(&linked_above, fnLines...)))
+			i = end
 			flush_above()
 
 		case strings.HasPrefix(line, "class "):
@@ -76,7 +82,10 @@ func Tokenize(lines []string) []tk.Block {
 			flush_above()
 
 		case strings.HasPrefix(line, "var"):
-			blocks = append(blocks, make_block(tk.LocalVar, consume_with_above(&linked_above, []string{line}...)))
+			end := findSegmentEnd(lines, i, "var")
+			fnLines := lines[i : end+1]
+			blocks = append(blocks, make_block(tk.LocalVar, consume_with_above(&linked_above, fnLines...)))
+			i = end
 			flush_above()
 
 		case strings.HasPrefix(line, "func _init("):
@@ -125,11 +134,10 @@ func consume_with_above(linked_above *[]string, content ...string) []string {
 	trimmedAbove := trimBlankLines(*linked_above)
 	*linked_above = nil
 
-	if len(*linked_above) == 0 {
+	if len(trimmedAbove) == 0 {
 		return *&content
 	}
 	out := slices.Concat(trimmedAbove, content)
-	*linked_above = nil
 	return out
 
 }
@@ -147,7 +155,7 @@ func findBlockEnd(lines []string, idx int) int {
 			break
 		}
 	}
-	return i
+	return i - 1
 }
 
 // Find when a segment of lines that start with `id` ends

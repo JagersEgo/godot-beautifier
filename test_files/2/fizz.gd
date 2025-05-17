@@ -5,9 +5,23 @@ func _process(delta: float) -> void:
 	var _ = "banana:
 	print(banana)
 
-@onready var fruit = "hahahaha"
+# Fruits block
+@onready var fruit0 = "a"
+@onready var fruit1 = "b"
+@onready var fruit2 = "c"
+@onready var fruit3 = "d"
 
+# Attack range
+# Yeah thats the attack range
 @export range : int = 0
+
+@export dmg : int = 0
+
+@export speed : int = 0
+@export also_speed: int = 0
+
+
+
 
 class_name enemy
 

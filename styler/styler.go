@@ -13,6 +13,8 @@ import (
 	"godot_linter/styler/tokeniser"
 )
 
+const VERBOSE = false
+
 func LintFile(path string, ch chan error) {
 
 	printer.PrintNormal("Linting " + path)
@@ -26,25 +28,32 @@ func LintFile(path string, ch chan error) {
 
 	tokens := tokeniser.Tokenize(lines)
 
-	// Print before changes
-	for _, t := range tokens {
-		print(tk.BlockTypeToString(t.Type) + ":\n")
-		printer.PPrintArray(t.Content)
+	if VERBOSE {
+		// Print before changes
+		for _, t := range tokens {
+			print(tk.BlockTypeToString(t.Type) + ":\n")
+			printer.PPrintArray(t.Content)
+		}
 	}
 
 	slices.SortStableFunc(tokens, func(a, b tk.Block) int {
 		return int(a.Type) - int(b.Type)
 	})
 
-	// After
-	println("---")
-	for _, t := range tokens {
-		print(tk.BlockTypeToString(t.Type) + ":\n")
-		printer.PPrintArray(t.Content)
+	if VERBOSE {
+		// After
+		println("---")
+		for _, t := range tokens {
+			print(tk.BlockTypeToString(t.Type) + ":\n")
+			printer.PPrintArray(t.Content)
+		}
 	}
 
 	det := Detokenise(tokens)
-	print(det)
+
+	if VERBOSE {
+		print(det)
+	}
 
 	// // Write edited file
 	// err = os.WriteFile(path, []byte(DETOKENISED), 0644)
@@ -75,11 +84,16 @@ func Detokenise(tokens []tk.Block) string {
 		if i+1 == len(tokens) {
 			break
 		}
-		file += "\n\n"
-		if token.Type == tk.Function || token.Type == tk.Init || token.Type == tk.Ready {
-			file += "\n"
+
+		// Start with 1 newline
+		newlines := 2
+
+		if token.Type == tk.ClassName {
+			newlines--
 		}
 
+		file += strings.Repeat("\n", newlines)
 	}
+
 	return file
 }
