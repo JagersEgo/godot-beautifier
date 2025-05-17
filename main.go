@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"godot_linter/styler"
 )
 
 const ROOT = "./"
@@ -96,7 +98,7 @@ func lint_files_mt(files []string) {
 
 		go func(path string) {
 			defer wg.Done()
-			lint_file(path, ch)
+			styler.LintFile(path, ch)
 		}(file)
 	}
 
@@ -110,7 +112,7 @@ func lint_files_mt(files []string) {
 func lint_files_st(files []string) {
 	for _, file := range files {
 
-		lint_file(file, nil)
+		styler.LintFile(file, nil)
 	}
 
 	return
