@@ -72,8 +72,7 @@ func main() {
 				printer.PrintNormal("GDScript files found:")
 				printer.PPrintArray(files)
 
-				printer.PrintObvious(fmt.Sprintf("Ensure the project root is at `%s`", input_path))
-				keep_going := printer.AskConfirmation("Continue to lint?")
+				keep_going := printer.AskConfirmation("Continue to process?")
 				if !keep_going {
 					printer.PrintNormal("Exiting")
 					os.Exit(0)

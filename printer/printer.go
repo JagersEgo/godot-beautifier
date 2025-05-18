@@ -80,7 +80,7 @@ func AskConfirmation(prompt string) bool {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		fmt.Printf("%s[?]: %s [Y/n]: %s", Magenta, prompt, Reset)
+		fmt.Printf("%s[?]:%s %s [Y/n]:", Magenta, Reset, prompt)
 		input, err := reader.ReadString('\n')
 		if err != nil {
 			fmt.Println("Error reading input.")
