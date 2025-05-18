@@ -36,13 +36,14 @@ func LintFile(path string, ch chan error) {
 		}
 	}
 
+	// Sort blocks by enum order
 	slices.SortStableFunc(tokens, func(a, b tk.Block) int {
 		return int(a.Type) - int(b.Type)
 	})
 
 	if VERBOSE {
 		// After
-		println("---")
+		println("<== Tokens after sort")
 		for _, t := range tokens {
 			print(tk.BlockTypeToString(t.Type) + ":\n")
 			printer.PPrintArray(t.Content)

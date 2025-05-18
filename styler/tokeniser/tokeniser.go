@@ -147,11 +147,7 @@ func findBlockEnd(lines []string, idx int) int {
 	baseIndent := countIndent(lines[idx])
 	i := idx + 1
 	for ; i < len(lines); i++ {
-		// stop when indent back to <= base or blank
-		if strings.TrimSpace(lines[i]) == "" {
-			break
-		}
-		if countIndent(lines[i]) <= baseIndent {
+		if countIndent(lines[i]) <= baseIndent && strings.TrimSpace(lines[i]) != "" {
 			break
 		}
 	}
