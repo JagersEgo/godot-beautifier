@@ -55,11 +55,11 @@ func LintFile(path string, ch chan error) {
 		print(det)
 	}
 
-	// // Write edited file
-	// err = os.WriteFile(path, []byte(DETOKENISED), 0644)
-	// if err != nil {
-	// 	ch <- err
-	// }
+	// Write edited file
+	err = os.WriteFile(path, []byte(det), 0644)
+	if err != nil {
+		ch <- err
+	}
 
 }
 
