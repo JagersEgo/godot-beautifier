@@ -71,8 +71,8 @@ extends node
 
 @export dmg : int = 0
 
-@export  var speed : int = 0
-@export  var also_speed: int = 0
+@export var speed : int = 0
+@export var also_speed: int = 0
 
 # Fruits block
 @onready var fruit0 = "apple"
