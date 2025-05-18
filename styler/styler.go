@@ -13,10 +13,7 @@ import (
 	"godot_linter/styler/tokeniser"
 )
 
-const VERBOSE = false
-
-func LintFile(path string, ch chan error) {
-
+func LintFile(path string, ch chan error, verbose bool, dry bool) {
 	printer.PrintNormal("Linting " + path)
 
 	data, err := os.ReadFile(path)
@@ -28,7 +25,7 @@ func LintFile(path string, ch chan error) {
 
 	tokens := tokeniser.Tokenize(lines)
 
-	if VERBOSE {
+	if verbose {
 		// Print before changes
 		for _, t := range tokens {
 			print(tk.BlockTypeToString(t.Type) + ":\n")
@@ -41,7 +38,7 @@ func LintFile(path string, ch chan error) {
 		return int(a.Type) - int(b.Type)
 	})
 
-	if VERBOSE {
+	if verbose {
 		// After
 		println("<== Tokens after sort")
 		for _, t := range tokens {
@@ -52,16 +49,17 @@ func LintFile(path string, ch chan error) {
 
 	det := Detokenise(tokens)
 
-	if VERBOSE {
-		print(det)
+	if verbose {
+		print(det + "\n")
 	}
 
 	// Write edited file
-	err = os.WriteFile(path, []byte(det), 0644)
-	if err != nil {
-		ch <- err
+	if !dry {
+		err = os.WriteFile(path, []byte(det), 0644)
+		if err != nil {
+			ch <- err
+		}
 	}
-
 }
 
 // Order parts
@@ -89,8 +87,11 @@ func Detokenise(tokens []tk.Block) string {
 		// Start with 1 newline
 		newlines := 2
 
-		if token.Type == tk.ClassName {
+		switch token.Type {
+		case tk.ClassName:
 			newlines--
+		case tk.Function, tk.Ready, tk.Init:
+			newlines++
 		}
 
 		file += strings.Repeat("\n", newlines)

@@ -91,14 +91,14 @@ func Tokenize(lines []string) []tk.Block {
 		case strings.HasPrefix(line, "func _init("):
 			end := findBlockEnd(lines, i)
 			initLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.Init, consume_with_above(&linked_above, initLines...)))
+			blocks = append(blocks, make_block(tk.Init, trimBlankLines(consume_with_above(&linked_above, initLines...))))
 			i = end
 			flush_above()
 
 		case strings.HasPrefix(line, "func _ready("):
 			end := findBlockEnd(lines, i)
 			readyLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.Ready, consume_with_above(&linked_above, readyLines...)))
+			blocks = append(blocks, make_block(tk.Ready, trimBlankLines(consume_with_above(&linked_above, readyLines...))))
 			i = end
 			flush_above()
 
@@ -106,7 +106,7 @@ func Tokenize(lines []string) []tk.Block {
 			// generic function
 			end := findBlockEnd(lines, i)
 			fnLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.Function, consume_with_above(&linked_above, fnLines...)))
+			blocks = append(blocks, make_block(tk.Function, trimBlankLines(consume_with_above(&linked_above, fnLines...))))
 			i = end
 			flush_above()
 

@@ -13,7 +13,7 @@ func NewBackup(base string, input_files []string) (string, error) {
 	ctx := context.TODO()
 
 	save_location := fmt.Sprintf(
-		"%s/godot-linter-backup_%d.tar.zstd",
+		"%s/godot-linter-backup_%d.tar.zst",
 		os.TempDir(),
 		time.Now().Unix(),
 	)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"godot_linter/printer"
 	"os"
@@ -10,48 +11,87 @@ import (
 	"time"
 
 	"godot_linter/styler"
+
+	"github.com/urfave/cli/v3"
 )
 
 const ROOT = "./"
 
 func main() {
-	var project_root string
-	if len(os.Args) == 2 {
-		project_root = os.Args[1]
-	} else if len(os.Args) < 2 {
-		project_root = ROOT
-	} else {
-		printer.PrintError("Too many arguments, only provide the path to the godot project or none for cwd")
-		os.Exit(1)
+	cmd := &cli.Command{
+		Name:      "Godot Beautifier",
+		Usage:     "Beautify/format GDScript code!",
+		UsageText: "godot-beautifier [path to project/file] [args...]",
+
+		UseShortOptionHandling: true,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:    "verbose",
+				Aliases: []string{"v"},
+				Value:   false,
+				Usage:   "verbose logging of editing process,",
+			},
+			&cli.BoolFlag{
+				Name:    "dry",
+				Aliases: []string{"d"},
+				Value:   false,
+				Usage:   "don't write changed files, use with verbose for testing",
+			},
+		},
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			var input_path string
+			if cmd.NArg() == 1 {
+				input_path = cmd.Args().Get(0)
+			} else if cmd.NArg() == 0 {
+				input_path = ROOT
+			} else {
+				printer.PrintError("Too many arguments, only provide the path to the godot project or none for cwd")
+				os.Exit(1)
+			}
+
+			printer.PrintNormal(fmt.Sprintf("Using godot project at: `%s`", input_path))
+
+			var files []string
+			if strings.HasSuffix(input_path, ".gd") {
+				// Is single file
+				files = append(files, input_path)
+				printer.PrintNormal("GDScript file provided: " + input_path)
+			} else {
+				var err error
+
+				// Is dir
+				files, err = scan_gd_files(input_path)
+				if err != nil {
+					printer.PrintError("Not continuing, could not open all files in project at " + input_path)
+					os.Exit(1)
+				} else if len(files) == 0 {
+					printer.PrintError("Not continuing, no GDScript files found." + input_path)
+					os.Exit(1)
+				}
+
+				printer.PrintNormal("GDScript files found:")
+				printer.PPrintArray(files)
+
+				printer.PrintObvious(fmt.Sprintf("Ensure the project root is at `%s`", input_path))
+				keep_going := printer.AskConfirmation("Continue to lint?")
+				if !keep_going {
+					printer.PrintNormal("Exiting")
+					os.Exit(0)
+				}
+			}
+
+			backup_files(input_path, files)
+
+			start := time.Now() // Before line
+			lint_files_mt(files, cmd.Bool("v"), cmd.Bool("d"))
+			elapsed := time.Since(start) // After line
+			printer.PrintNormal(fmt.Sprintf("Execution took %s", elapsed))
+
+			return nil
+		},
 	}
 
-	printer.PrintNormal(fmt.Sprintf("Using godot project at: `%s`", project_root))
-
-	files, err := scan_gd_files(project_root)
-	if err != nil {
-		printer.PrintError("Not continuing, could not open all files in project at " + project_root)
-		os.Exit(1)
-	} else if len(files) == 0 {
-		printer.PrintError("Not continuing, no GDScript files found." + project_root)
-		os.Exit(1)
-	}
-
-	printer.PrintNormal("GDScript files found:")
-	printer.PPrintArray(files)
-
-	printer.PrintObvious(fmt.Sprintf("Ensure the project root is at `%s`", project_root))
-	keep_going := printer.AskConfirmation("Continue to lint?")
-	if !keep_going {
-		printer.PrintNormal("Exiting")
-		os.Exit(0)
-	}
-
-	backup_files(project_root, files)
-
-	start := time.Now() // Before line
-	lint_files_mt(files)
-	elapsed := time.Since(start) // After line
-	fmt.Printf("Execution took %s\n", elapsed)
+	cmd.Run(context.Background(), os.Args)
 }
 
 func scan_gd_files(local_root string) ([]string, error) {
@@ -85,7 +125,7 @@ func backup_files(local_root string, locations []string) error {
 	return nil
 }
 
-func lint_files_mt(files []string) {
+func lint_files_mt(files []string, verbose bool, dry bool) {
 	var wg sync.WaitGroup
 
 	ch := make(chan error)
@@ -101,22 +141,13 @@ func lint_files_mt(files []string) {
 
 		go func(path string) {
 			defer wg.Done()
-			styler.LintFile(path, ch)
+			styler.LintFile(path, ch, verbose, dry)
 		}(file)
 	}
 
 	wg.Wait()
 
 	close(ch)
-
-	return
-}
-
-func lint_files_st(files []string) {
-	for _, file := range files {
-
-		styler.LintFile(file, nil)
-	}
 
 	return
 }

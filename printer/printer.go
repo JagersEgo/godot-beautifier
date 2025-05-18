@@ -58,7 +58,7 @@ func PPrintArray(arr []string) {
 	}
 
 	if n > limit {
-		fmt.Printf(",\n  + %d more files", n-limit)
+		fmt.Printf(",\n  + %d more lines", n-limit)
 	}
 
 	fmt.Printf("\n" + Reset)
