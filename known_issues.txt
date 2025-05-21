@@ -1,0 +1,6 @@
+Known issues:
+
+# Dictionary with key as triple quote string without indent:
+var dictionary = {
+"""key""" : 0
+}
