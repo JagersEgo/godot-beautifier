@@ -10,6 +10,26 @@ import (
 
 const indent = "	"
 
+type HandlerFunc func(line string, lines []string, i *int, blocks *[]tk.Block, linkedAbove *[]string)
+
+var handlers = map[string]HandlerFunc{
+	"@tool":        handleTool,
+	"class_name":   handleClassName,
+	"extends":      handleExtend,
+	`"""`:          handleDocString,
+	"signal":       handleSignals,
+	"enum":         handleEnum,
+	"const":        handleConstants,
+	"@export":      handleExport,
+	"@onready":     handleOnReady,
+	"class":        handleClass,
+	"static":       handleStatic,
+	"var":          handleVar,
+	"func _init(":  handleInit,
+	"func _ready(": handleReady,
+	"func":         handleFunction,
+}
+
 func Tokenize(lines []string) ([]tk.Block, error) {
 	lines = ConvertSpaceIndentsToTabs(lines)
 
@@ -27,114 +47,12 @@ func Tokenize(lines []string) ([]tk.Block, error) {
 	for i := 0; i < len(lines); i++ {
 		line := lines[i]
 
-		switch {
-		// ---- CORE ITEMS ----
-		// Make into a custom function and change line
-		case strings.HasPrefix(line, "@tool"):
-			blocks = append(blocks, make_block(tk.Tool, consume_with_above(&linked_above, []string{line}...)))
+		fn, ok := handlers[strings.Split(line, " ")[0]]
+		if ok {
+			fn(line, lines, &i)
 			flush_above()
-
-		case strings.HasPrefix(line, "class_name"):
-			blocks = append(blocks, make_block(tk.ClassName, consume_with_above(&linked_above, []string{line}...)))
-			flush_above()
-
-		case strings.HasPrefix(line, "extends"):
-			blocks = append(blocks, make_block(tk.Extend, consume_with_above(&linked_above, []string{line}...)))
-			flush_above()
-
-		case strings.HasPrefix(line, "\"\"\""):
-			// doc‐string might be multi-line
-			end := find_docstring_end(lines, i)
-			docLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.DocString, consume_with_above(&linked_above, docLines...)))
-			i = end
-			flush_above()
-
-		case strings.HasPrefix(line, "signal"):
-			blocks = append(blocks, make_block(tk.Signals, consume_with_above(&linked_above, []string{line}...)))
-			flush_above()
-
-		case strings.HasPrefix(line, "enum"):
-			end := findImplicitBlockEnd(lines, i)
-			enumLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.Enum, trimBlankLines(consume_with_above(&linked_above, enumLines...))))
-			i = end
-			flush_above()
-
-		case strings.HasPrefix(line, "const"):
-			end := findImplicitBlockEnd(lines, i)
-			constLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.Constants, trimBlankLines(consume_with_above(&linked_above, constLines...))))
-			i = end
-			flush_above()
-
-		case strings.HasPrefix(line, "@export"):
-			end := findImplicitExtendedBlockEnd(lines, i, "@export")
-			fnLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.Export, trimBlankLines(consume_with_above(&linked_above, fnLines...))))
-			i = end
-			flush_above()
-
-		case strings.HasPrefix(line, "@onready"):
-			end := findImplicitExtendedBlockEnd(lines, i, "@onready")
-			fnLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.Ready, trimBlankLines(consume_with_above(&linked_above, fnLines...))))
-			i = end
-			flush_above()
-
-		case strings.HasPrefix(line, "class "):
-			// class body is indented
-			end := findBlockEnd(lines, i)
-			classLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.Class, consume_with_above(&linked_above, classLines...)))
-			i = end
-			flush_above()
-
-		case strings.HasPrefix(line, "var"):
-			end := findImplicitExtendedBlockEnd(lines, i, "var")
-			varLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.LocalVar, trimBlankLines(consume_with_above(&linked_above, varLines...))))
-			i = end
-			flush_above()
-
-		case strings.HasPrefix(line, "static var"):
-			end := findImplicitExtendedBlockEnd(lines, i, "static var")
-			varLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.LocalVar, trimBlankLines(consume_with_above(&linked_above, varLines...))))
-			i = end
-			flush_above()
-
-		case strings.HasPrefix(line, "func _init("):
-			end := findBlockEnd(lines, i)
-			initLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.Init, trimBlankLines(consume_with_above(&linked_above, initLines...))))
-			i = end
-			flush_above()
-
-		case strings.HasPrefix(line, "func _ready("):
-			end := findBlockEnd(lines, i)
-			readyLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.Ready, trimBlankLines(consume_with_above(&linked_above, readyLines...))))
-			i = end
-			flush_above()
-
-		case strings.HasPrefix(line, "func "), strings.HasPrefix(line, "static func "):
-			// generic function
-			end := findBlockEnd(lines, i)
-			fnLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.Function, trimBlankLines(consume_with_above(&linked_above, fnLines...))))
-			i = end
-			flush_above()
-
-		// ---- “Above” LINES ----
-		case strings.HasPrefix(line, "#"), line == "", strings.HasPrefix(line, indent):
-			// comment, blank, or indent-only: hold for next block
-			linked_above = append(linked_above, line)
-
-		default:
-			// nothing matched → Unknown standalone
-			blocks = append(blocks, make_block(tk.Unknown, consume_with_above(&linked_above, []string{line}...)))
-			flush_above()
+		} else {
+			handleUnknown(line, lines, &i, blocks, linked_above)
 			unknown_component = true
 		}
 	}
@@ -154,7 +72,7 @@ func countIndent(line string) int {
 	return len(line) - len(strings.TrimLeft(line, indent))
 }
 
-func consume_with_above(linked_above *[]string, content ...string) []string {
+func consumeWithAbove(linked_above *[]string, content ...string) []string {
 	trimmedAbove := trimBlankLines(*linked_above)
 	*linked_above = nil
 
@@ -231,7 +149,7 @@ func find_docstring_end(lines []string, idx int) int {
 	return idx
 }
 
-func make_block(btype tk.BlockType, lines []string) tk.Block {
+func makeBlock(btype tk.BlockType, lines []string) tk.Block {
 	block := tk.Block{Type: btype, Content: lines}
 	return block
 }
@@ -248,4 +166,128 @@ func trimBlankLines(lines []string) []string {
 	}
 
 	return lines[start:end]
+}
+
+// ---- Handler implementations ----
+
+func handleTool(line string, _ []string, _ *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	*blocks = append(*blocks, makeBlock(tk.Tool,
+		consumeWithAbove(linkedAbove, line),
+	))
+}
+func handleClassName(line string, _ []string, _ *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	*blocks = append(*blocks, makeBlock(tk.ClassName,
+		consumeWithAbove(linkedAbove, line),
+	))
+}
+func handleExtend(line string, _ []string, _ *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	*blocks = append(*blocks, makeBlock(tk.Extend,
+		consumeWithAbove(linkedAbove, line),
+	))
+}
+func handleDocString(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	end := find_docstring_end(lines, *idx)
+	docLines := lines[*idx : end+1]
+	*blocks = append(*blocks, makeBlock(tk.DocString,
+		consumeWithAbove(linkedAbove, docLines...),
+	))
+	*idx = end
+}
+func handleSignals(line string, _ []string, _ *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	*blocks = append(*blocks, makeBlock(tk.Signals,
+		consumeWithAbove(linkedAbove, line),
+	))
+}
+func handleEnum(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	end := findImplicitBlockEnd(lines, *idx)
+	enumLines := lines[*idx : end+1]
+	*blocks = append(*blocks, makeBlock(tk.Enum,
+		trimBlankLines(consumeWithAbove(linkedAbove, enumLines...)),
+	))
+	*idx = end
+}
+func handleConstants(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	end := findImplicitBlockEnd(lines, *idx)
+	constLines := lines[*idx : end+1]
+	*blocks = append(*blocks, makeBlock(tk.Constants,
+		trimBlankLines(consumeWithAbove(linkedAbove, constLines...)),
+	))
+	*idx = end
+}
+func handleExport(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	end := findImplicitExtendedBlockEnd(lines, *idx, "@export")
+	fnLines := lines[*idx : end+1]
+	*blocks = append(*blocks, makeBlock(tk.Export,
+		trimBlankLines(consumeWithAbove(linkedAbove, fnLines...)),
+	))
+	*idx = end
+}
+func handleOnReady(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	end := findImplicitExtendedBlockEnd(lines, *idx, "@onready")
+	fnLines := lines[*idx : end+1]
+	*blocks = append(*blocks, makeBlock(tk.Ready,
+		trimBlankLines(consumeWithAbove(linkedAbove, fnLines...)),
+	))
+	*idx = end
+}
+func handleClass(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	end := findBlockEnd(lines, *idx)
+	classLines := lines[*idx : end+1]
+	*blocks = append(*blocks, makeBlock(tk.Class,
+		consumeWithAbove(linkedAbove, classLines...),
+	))
+	*idx = end
+}
+func handleStaticVar(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	end := findImplicitExtendedBlockEnd(lines, *idx, "static var")
+	varLines := lines[*idx : end+1]
+	*blocks = append(*blocks, makeBlock(tk.LocalVar,
+		trimBlankLines(consumeWithAbove(linkedAbove, varLines...)),
+	))
+	*idx = end
+}
+func handleVar(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	end := findImplicitExtendedBlockEnd(lines, *idx, "var")
+	varLines := lines[*idx : end+1]
+	*blocks = append(*blocks, makeBlock(tk.LocalVar,
+		trimBlankLines(consumeWithAbove(linkedAbove, varLines...)),
+	))
+	*idx = end
+}
+func handleInit(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	end := findBlockEnd(lines, *idx)
+	initLines := lines[*idx : end+1]
+	*blocks = append(*blocks, makeBlock(tk.Init,
+		trimBlankLines(consumeWithAbove(linkedAbove, initLines...)),
+	))
+	*idx = end
+}
+func handleReady(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	end := findBlockEnd(lines, *idx)
+	readyLines := lines[*idx : end+1]
+	*blocks = append(*blocks, makeBlock(tk.Ready,
+		trimBlankLines(consumeWithAbove(linkedAbove, readyLines...)),
+	))
+	*idx = end
+}
+func handleFunction(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	end := findBlockEnd(lines, *idx)
+	fnLines := lines[*idx : end+1]
+	*blocks = append(*blocks, makeBlock(tk.Function,
+		trimBlankLines(consumeWithAbove(linkedAbove, fnLines...)),
+	))
+	*idx = end
+}
+
+func handleUnknown() (_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	return
+}
+
+// flushAbove only resets linkedAbove slice
+func flushAbove(linkedAbove *[]string) {
+	*linkedAbove = nil
+}
+
+func isIndentOnly(s string) bool {
+	return strings.Trim(s, " \t") == ""
 }
