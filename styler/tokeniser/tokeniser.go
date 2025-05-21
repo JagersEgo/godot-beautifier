@@ -1,6 +1,7 @@
 package tokeniser
 
 import (
+	"errors"
 	"slices"
 	"strings"
 
@@ -9,12 +10,15 @@ import (
 
 const indent = "	"
 
-func Tokenize(lines []string) []tk.Block {
+func Tokenize(lines []string) ([]tk.Block, error) {
 	lines = ConvertSpaceIndentsToTabs(lines)
 
 	var blocks []tk.Block
+	blocks = make([]tk.Block, 0, len(lines)/2)
+
 	var linked_above []string
-	//tokens := make([]Block, len(lines)/2)
+
+	unknown_component := false
 
 	flush_above := func() {
 		linked_above = nil
@@ -23,10 +27,9 @@ func Tokenize(lines []string) []tk.Block {
 	for i := 0; i < len(lines); i++ {
 		line := lines[i]
 
-		//trim := trimBlankLines(line)
-
 		switch {
 		// ---- CORE ITEMS ----
+		// Make into a custom function and change line
 		case strings.HasPrefix(line, "@tool"):
 			blocks = append(blocks, make_block(tk.Tool, consume_with_above(&linked_above, []string{line}...)))
 			flush_above()
@@ -59,20 +62,23 @@ func Tokenize(lines []string) []tk.Block {
 			flush_above()
 
 		case strings.HasPrefix(line, "const"):
-			blocks = append(blocks, make_block(tk.Constants, consume_with_above(&linked_above, []string{line}...)))
+			end := findImplicitBlockEnd(lines, i)
+			constLines := lines[i : end+1]
+			blocks = append(blocks, make_block(tk.Constants, trimBlankLines(consume_with_above(&linked_above, constLines...))))
+			i = end
 			flush_above()
 
 		case strings.HasPrefix(line, "@export"):
-			end := findSegmentEnd(lines, i, "@export")
+			end := findImplicitExtendedBlockEnd(lines, i, "@export")
 			fnLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.Export, consume_with_above(&linked_above, fnLines...)))
+			blocks = append(blocks, make_block(tk.Export, trimBlankLines(consume_with_above(&linked_above, fnLines...))))
 			i = end
 			flush_above()
 
 		case strings.HasPrefix(line, "@onready"):
-			end := findSegmentEnd(lines, i, "@onready")
+			end := findImplicitExtendedBlockEnd(lines, i, "@onready")
 			fnLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.Ready, consume_with_above(&linked_above, fnLines...)))
+			blocks = append(blocks, make_block(tk.Ready, trimBlankLines(consume_with_above(&linked_above, fnLines...))))
 			i = end
 			flush_above()
 
@@ -85,7 +91,14 @@ func Tokenize(lines []string) []tk.Block {
 			flush_above()
 
 		case strings.HasPrefix(line, "var"):
-			end := findImplicitBlockEnd(lines, i)
+			end := findImplicitExtendedBlockEnd(lines, i, "var")
+			varLines := lines[i : end+1]
+			blocks = append(blocks, make_block(tk.LocalVar, trimBlankLines(consume_with_above(&linked_above, varLines...))))
+			i = end
+			flush_above()
+
+		case strings.HasPrefix(line, "static var"):
+			end := findImplicitExtendedBlockEnd(lines, i, "static var")
 			varLines := lines[i : end+1]
 			blocks = append(blocks, make_block(tk.LocalVar, trimBlankLines(consume_with_above(&linked_above, varLines...))))
 			i = end
@@ -105,7 +118,7 @@ func Tokenize(lines []string) []tk.Block {
 			i = end
 			flush_above()
 
-		case strings.HasPrefix(line, "func "):
+		case strings.HasPrefix(line, "func "), strings.HasPrefix(line, "static func "):
 			// generic function
 			end := findBlockEnd(lines, i)
 			fnLines := lines[i : end+1]
@@ -122,10 +135,18 @@ func Tokenize(lines []string) []tk.Block {
 			// nothing matched → Unknown standalone
 			blocks = append(blocks, make_block(tk.Unknown, consume_with_above(&linked_above, []string{line}...)))
 			flush_above()
+			unknown_component = true
 		}
 	}
 
-	return blocks
+	var e error
+	if unknown_component {
+		e = errors.New("Unknown component in script")
+	} else {
+		e = nil
+	}
+
+	return blocks, e
 }
 
 // countIndent counts how many indent tabs at line start.
@@ -165,6 +186,21 @@ outer:
 	for ; i < len(lines); i++ {
 		for _, pre := range tk.Prefixes {
 			if strings.HasPrefix(lines[i], pre) {
+				break outer
+			}
+		}
+	}
+	return i - 1
+}
+
+// findBlockEnd finds the last line index of a func/class by finding the start of the next block, extends the original type
+func findImplicitExtendedBlockEnd(lines []string, idx int, exception string) int {
+	i := idx + 1
+
+outer:
+	for ; i < len(lines); i++ {
+		for _, pre := range tk.Prefixes {
+			if !strings.HasPrefix(lines[i], exception) && strings.HasPrefix(lines[i], pre) {
 				break outer
 			}
 		}

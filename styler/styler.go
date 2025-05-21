@@ -23,7 +23,11 @@ func LintFile(path string, ch chan error, verbose bool, dry bool) {
 
 	lines := strings.Split(string(data), "\n")
 
-	tokens := tokeniser.Tokenize(lines)
+	tokens, err := tokeniser.Tokenize(lines)
+	if err != nil {
+		ch <- err
+		return
+	}
 
 	if verbose {
 		// Print before changes
@@ -63,6 +67,8 @@ func LintFile(path string, ch chan error, verbose bool, dry bool) {
 			ch <- err
 		}
 	}
+
+	printer.PrintSuccess("Finished: " + path)
 }
 
 // Order parts

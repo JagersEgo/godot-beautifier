@@ -34,8 +34,10 @@ var Prefixes = []string{
 	"@onready",
 	"class ",
 	"var",
+	"static var",
 	"func ",
-	"#", // for comment lines
+	"static func ",
+	"#",
 }
 
 type Block struct {

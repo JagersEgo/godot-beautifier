@@ -4,3 +4,6 @@ Known issues:
 var dictionary = {
 """key""" : 0
 }
+
+
+# Statics

@@ -19,6 +19,10 @@ func PrintNormal(warning string) {
 	fmt.Println(BoldCyan + "[~]: " + Reset + warning + Reset)
 }
 
+func PrintSuccess(warning string) {
+	fmt.Println(BoldGreen + "[✓]: " + Reset + warning + Reset)
+}
+
 func PrintInfo(warning string) {
 	fmt.Println(BoldBlue + "[i]: " + Reset + warning + Reset)
 }
