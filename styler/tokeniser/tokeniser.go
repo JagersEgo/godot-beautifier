@@ -52,7 +52,10 @@ func Tokenize(lines []string) []tk.Block {
 			flush_above()
 
 		case strings.HasPrefix(line, "enum"):
-			blocks = append(blocks, make_block(tk.Enum, consume_with_above(&linked_above, []string{line}...)))
+			end := findImplicitBlockEnd(lines, i)
+			enumLines := lines[i : end+1]
+			blocks = append(blocks, make_block(tk.Enum, trimBlankLines(consume_with_above(&linked_above, enumLines...))))
+			i = end
 			flush_above()
 
 		case strings.HasPrefix(line, "const"):
@@ -82,9 +85,9 @@ func Tokenize(lines []string) []tk.Block {
 			flush_above()
 
 		case strings.HasPrefix(line, "var"):
-			end := findSegmentEnd(lines, i, "var")
-			fnLines := lines[i : end+1]
-			blocks = append(blocks, make_block(tk.LocalVar, consume_with_above(&linked_above, fnLines...)))
+			end := findImplicitBlockEnd(lines, i)
+			varLines := lines[i : end+1]
+			blocks = append(blocks, make_block(tk.LocalVar, trimBlankLines(consume_with_above(&linked_above, varLines...))))
 			i = end
 			flush_above()
 
@@ -149,6 +152,21 @@ func findBlockEnd(lines []string, idx int) int {
 	for ; i < len(lines); i++ {
 		if countIndent(lines[i]) <= baseIndent && strings.TrimSpace(lines[i]) != "" {
 			break
+		}
+	}
+	return i - 1
+}
+
+// findBlockEnd finds the last line index of a func/class by finding the start of the next block
+func findImplicitBlockEnd(lines []string, idx int) int {
+	i := idx + 1
+
+outer:
+	for ; i < len(lines); i++ {
+		for _, pre := range tk.Prefixes {
+			if strings.HasPrefix(lines[i], pre) {
+				break outer
+			}
 		}
 	}
 	return i - 1

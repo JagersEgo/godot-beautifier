@@ -22,6 +22,22 @@ const (
 	Unknown
 )
 
+var Prefixes = []string{
+	"@tool",
+	"class_name",
+	"extends",
+	"\"\"\"",
+	"signal",
+	"enum",
+	"const",
+	"@export",
+	"@onready",
+	"class ",
+	"var",
+	"func ",
+	"#", // for comment lines
+}
+
 type Block struct {
 	Type    BlockType
 	Content []string

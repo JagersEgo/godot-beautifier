@@ -27,6 +27,7 @@ func LintFile(path string, ch chan error, verbose bool, dry bool) {
 
 	if verbose {
 		// Print before changes
+		println("<== Tokenisation")
 		for _, t := range tokens {
 			print(tk.BlockTypeToString(t.Type) + ":\n")
 			printer.PPrintArray(t.Content)
@@ -50,6 +51,8 @@ func LintFile(path string, ch chan error, verbose bool, dry bool) {
 	det := Detokenise(tokens)
 
 	if verbose {
+		// After
+		println("<== Final")
 		print(det + "\n")
 	}
 
