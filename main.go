@@ -82,9 +82,9 @@ func main() {
 			backup_files(input_path, files)
 
 			start := time.Now() // Before line
-			lint_files_mt(files, cmd.Bool("v"), cmd.Bool("d"))
+			total, errored := lint_files_mt(files, cmd.Bool("v"), cmd.Bool("d"))
 			elapsed := time.Since(start) // After line
-			printer.PrintNormal(fmt.Sprintf("Execution took %s", elapsed))
+			printer.PrintNormal(fmt.Sprintf("Execution took %s for %d files (%d failed)", elapsed, total, errored))
 
 			return nil
 		},
@@ -124,14 +124,16 @@ func backup_files(local_root string, locations []string) error {
 	return nil
 }
 
-func lint_files_mt(files []string, verbose bool, dry bool) {
+func lint_files_mt(files []string, verbose bool, dry bool) (total int, errored int) {
 	var wg sync.WaitGroup
 
 	ch := make(chan error)
+	not_completed := 0
 
 	go func() {
 		for state := range ch {
 			printer.PrintWarning("Error while linting: " + state.Error())
+			not_completed++
 		}
 	}()
 
@@ -148,5 +150,5 @@ func lint_files_mt(files []string, verbose bool, dry bool) {
 
 	close(ch)
 
-	return
+	return len(files), not_completed
 }
