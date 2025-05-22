@@ -243,7 +243,7 @@ func handleEnum(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAb
 	*idx = end
 }
 func handleConstants(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
-	end := findImplicitBlockEnd(lines, *idx)
+	end := findImplicitExtendedBlockEnd(lines, *idx, "const")
 	constLines := lines[*idx : end+1]
 	*blocks = append(*blocks, makeBlock(tk.Constants,
 		trimBlankLines(consumeWithAbove(linkedAbove, constLines...)),

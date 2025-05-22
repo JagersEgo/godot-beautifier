@@ -67,9 +67,9 @@ extends node
 
 # Attack range
 # Yeah thats the attack range
-@export range : int = 0
+@export var range : int = 0
 
-@export dmg : int = 0
+@export var dmg : int = 0
 
 @export var speed : int = 0
 @export var also_speed: int = 0
