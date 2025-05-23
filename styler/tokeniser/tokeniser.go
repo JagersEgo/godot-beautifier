@@ -261,7 +261,7 @@ func handleExport(_ string, lines []string, idx *int, blocks *[]tk.Block, linked
 func handleOnReady(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
 	end := findImplicitExtendedBlockEnd(lines, *idx, "@onready")
 	fnLines := lines[*idx : end+1]
-	*blocks = append(*blocks, makeBlock(tk.Ready,
+	*blocks = append(*blocks, makeBlock(tk.Onready,
 		trimBlankLines(consumeWithAbove(linkedAbove, fnLines...)),
 	))
 	*idx = end
