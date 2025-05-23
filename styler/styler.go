@@ -4,6 +4,7 @@ package styler
 // Block exports and onreadys and local vars in the tokeniser
 
 import (
+	"fmt"
 	"godot_linter/printer"
 	"os"
 	"slices"
@@ -13,8 +14,19 @@ import (
 	"godot_linter/styler/tokeniser"
 )
 
+type TokenizerError struct {
+	FilePath string
+	Message  string
+}
+
+func (terr TokenizerError) Error() string {
+	return fmt.Sprintf("Error tokenising file %s: %s", terr.FilePath, terr.Message)
+}
+
 func LintFile(path string, ch chan error, verbose bool, dry bool) {
-	printer.PrintNormal("Linting " + path)
+	if verbose {
+		printer.PrintNormal("Linting " + path)
+	}
 
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -25,7 +37,8 @@ func LintFile(path string, ch chan error, verbose bool, dry bool) {
 
 	tokens, err := tokeniser.Tokenize(lines)
 	if err != nil {
-		ch <- err
+		terr := TokenizerError{FilePath: path, Message: err.Error()}
+		ch <- terr
 		return
 	}
 

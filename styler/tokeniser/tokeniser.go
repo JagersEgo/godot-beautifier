@@ -5,7 +5,6 @@ import (
 	"slices"
 	"strings"
 
-	"godot_linter/printer"
 	tk "godot_linter/styler/tokendef"
 )
 
@@ -56,6 +55,8 @@ func Tokenize(lines []string) ([]tk.Block, error) {
 			switch {
 			case isIndentOnly(line):
 				continue
+			case strings.HasPrefix(line, "@export"): // Other exports
+				handleExport(line, lines, &i, &blocks, &linked_above)
 			case line[0] == '#', stripIndents(&line)[0] == '#':
 				handleComment(line, lines, &i, &blocks, &linked_above)
 			default:
@@ -343,7 +344,7 @@ func handleComment(line string, _ []string, _ *int, blocks *[]tk.Block, linkedAb
 	*linkedAbove = append(*linkedAbove, line)
 }
 func handleUnknown(line string, _ []string, _ *int, blocks *[]tk.Block, linkedAbove *[]string) {
-	printer.PrintWarning("Unknown line parsed: " + line)
+	//printer.PrintWarning("Unknown line parsed: " + line)
 	*blocks = append(*blocks, makeBlock(tk.Unknown,
 		trimBlankLines(consumeWithAbove(linkedAbove, line)),
 	))

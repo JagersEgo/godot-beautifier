@@ -132,7 +132,7 @@ func lint_files_mt(files []string, verbose bool, dry bool) (total int, errored i
 
 	go func() {
 		for state := range ch {
-			printer.PrintWarning("Error while linting: " + state.Error())
+			printer.PrintWarning(state.Error())
 			not_completed++
 		}
 	}()
@@ -151,4 +151,8 @@ func lint_files_mt(files []string, verbose bool, dry bool) (total int, errored i
 	close(ch)
 
 	return len(files), not_completed
+}
+
+func makePathLocal(path string, local_root string) string {
+	return filepath.Base(local_root) + "/" + strings.TrimPrefix(path, local_root)
 }
