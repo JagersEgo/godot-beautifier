@@ -1,5 +1,8 @@
 Known issues:
 
+# Unindented comments in indented blocks
+
+
 # Dictionary with key as triple quote string without indent:
 var dictionary = {
 """key""" : 0

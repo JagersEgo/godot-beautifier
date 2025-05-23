@@ -37,6 +37,11 @@ func main() {
 				Value:   false,
 				Usage:   "don't write changed files, use with verbose for testing",
 			},
+			&cli.StringSliceFlag{
+				Name:  "except",
+				Value: []string{"addons"},
+				Usage: "don't modify files in folders with excluded names",
+			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			var input_path string
@@ -67,6 +72,26 @@ func main() {
 				} else if len(files) == 0 {
 					printer.PrintError("Not continuing, no GDScript files found." + input_path)
 					os.Exit(1)
+				}
+
+				{
+					var filtered []string
+					exclusions := cmd.StringSlice("except")
+
+					for _, file := range files {
+						skip := false
+						for _, sub := range exclusions {
+							if strings.Contains(file, sub) {
+								skip = true
+								break
+							}
+						}
+						if !skip {
+							filtered = append(filtered, file)
+						}
+					}
+
+					files = filtered
 				}
 
 				printer.PrintNormal("GDScript files found:")
