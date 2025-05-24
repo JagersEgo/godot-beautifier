@@ -42,6 +42,10 @@ func main() {
 				Value: []string{"addons"},
 				Usage: "don't modify files in folders with excluded names",
 			},
+			&cli.BoolFlag{
+				Name:  "no-confirm",
+				Usage: "don't ask for user confirmation",
+			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			var input_path string
@@ -97,10 +101,12 @@ func main() {
 				printer.PrintNormal("GDScript files found:")
 				printer.PPrintArray(files)
 
-				keep_going := printer.AskConfirmation("Continue to process?")
-				if !keep_going {
-					printer.PrintNormal("Exiting")
-					os.Exit(0)
+				if !cmd.Bool("no-confirm") {
+					keep_going := printer.AskConfirmation("Continue to process?")
+					if !keep_going {
+						printer.PrintNormal("Exiting")
+						os.Exit(0)
+					}
 				}
 			}
 
