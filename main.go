@@ -15,6 +15,9 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+// TODO
+// Fix race condition on printing errors and exiting
+
 const ROOT = "./"
 
 func main() {
@@ -157,11 +160,14 @@ func backup_files(local_root string, locations []string) error {
 
 func lint_files_mt(files []string, verbose bool, dry bool) (total int, errored int) {
 	var wg sync.WaitGroup
+	var ErrWg sync.WaitGroup
 
 	ch := make(chan error)
 	not_completed := 0
 
 	go func() {
+		ErrWg.Add(1)
+		defer	ErrWg.Done()
 		for state := range ch {
 			printer.PrintWarning(state.Error())
 			not_completed++
@@ -180,6 +186,8 @@ func lint_files_mt(files []string, verbose bool, dry bool) (total int, errored i
 	wg.Wait()
 
 	close(ch)
+
+	ErrWg.Wait()
 
 	return len(files), not_completed
 }

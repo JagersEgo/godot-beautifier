@@ -336,6 +336,10 @@ func handleReady_(lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]s
 	*idx = end
 }
 func handleComment(line string, _ []string, _ *int, blocks *[]tk.Block, linkedAbove *[]string) {
+	if line == "# Called when the node enters the scene tree for the first time." || line == "# Called every frame. 'delta' is the elapsed time since the previous frame." {
+		return
+	}
+
 	*linkedAbove = append(*linkedAbove, line)
 }
 func handleUnknown(line string, _ []string, _ *int, blocks *[]tk.Block, linkedAbove *[]string) {
