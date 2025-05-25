@@ -39,17 +39,12 @@ func Tokenize(lines []string) ([]tk.Block, error) {
 
 	unknown_component := false
 
-	flush_above := func() {
-		linked_above = nil
-	}
-
 	for i := 0; i < len(lines); i++ {
 		line := lines[i]
 
 		fn, ok := handlers[strings.Split(line, " ")[0]]
 		if ok {
 			fn(line, lines, &i, &blocks, &linked_above)
-			flush_above()
 		} else {
 			// Cases not recognised by first character
 			switch {
