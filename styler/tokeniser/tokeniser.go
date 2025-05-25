@@ -64,7 +64,7 @@ func Tokenize(lines []string) ([]tk.Block, error) {
 	// Scan for unknown component
 	if !unknown_component {
 		for _, block := range blocks {
-			if block.Type == tk.Unknown {
+			if block.GetType() == tk.Unknown {
 				unknown_component = true
 				break
 			}
@@ -158,6 +158,33 @@ outer:
 	return i - 1
 }
 
+// x
+func findVariableBlockEnd(lines []string, idx int) int {
+	i := idx + 1
+
+	isVar := func() bool {
+		for _, pre := range tk.VariablePrefixes {
+			if strings.HasPrefix(lines[i], pre) {
+				return true
+			}
+		}
+		return false
+	}
+
+	for ; i < len(lines); i++ {
+		if isIndentOnly(lines[i]) {
+			break
+		}
+
+		if !isVar() {
+			break
+		}
+
+	}
+
+	return i - 1
+}
+
 // Find when a segment of lines that start with `id` ends
 func findSegmentEnd(lines []string, idx int, id string) int {
 	i := idx + 1
@@ -182,7 +209,12 @@ func find_docstring_end(lines []string, idx int) int {
 }
 
 func makeBlock(btype tk.BlockType, lines []string) tk.Block {
-	block := tk.Block{Type: btype, Content: lines}
+	block := tk.GenericBlock{Type: btype, Content: lines}
+	return block
+}
+
+func makeVariableBlock(vtype tk.VariableType, lines []string) tk.Block {
+	block := tk.VariableBlock{VariableType: vtype, Content: lines}
 	return block
 }
 
@@ -247,17 +279,17 @@ func handleConstants(_ string, lines []string, idx *int, blocks *[]tk.Block, lin
 	*idx = end
 }
 func handleExport(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
-	end := findImplicitExtendedBlockEnd(lines, *idx, "@export")
+	end := findVariableBlockEnd(lines, *idx)
 	fnLines := lines[*idx : end+1]
-	*blocks = append(*blocks, makeBlock(tk.Export,
+	*blocks = append(*blocks, makeVariableBlock(tk.Export,
 		trimBlankLines(consumeWithAbove(linkedAbove, fnLines...)),
 	))
 	*idx = end
 }
 func handleOnReady(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
-	end := findImplicitExtendedBlockEnd(lines, *idx, "@onready")
+	end := findVariableBlockEnd(lines, *idx)
 	fnLines := lines[*idx : end+1]
-	*blocks = append(*blocks, makeBlock(tk.Onready,
+	*blocks = append(*blocks, makeVariableBlock(tk.Onready,
 		trimBlankLines(consumeWithAbove(linkedAbove, fnLines...)),
 	))
 	*idx = end
@@ -280,9 +312,9 @@ func handleStatic(line string, lines []string, idx *int, blocks *[]tk.Block, lin
 	}
 }
 func handleStaticVar_(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
-	end := findImplicitExtendedBlockEnd(lines, *idx, "static var")
+	end := findVariableBlockEnd(lines, *idx)
 	varLines := lines[*idx : end+1]
-	*blocks = append(*blocks, makeBlock(tk.LocalVar,
+	*blocks = append(*blocks, makeVariableBlock(tk.Static,
 		trimBlankLines(consumeWithAbove(linkedAbove, varLines...)),
 	))
 	*idx = end
@@ -296,9 +328,9 @@ func handleStaticFunction_(_ string, lines []string, idx *int, blocks *[]tk.Bloc
 	*idx = end
 }
 func handleVar(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
-	end := findImplicitExtendedBlockEnd(lines, *idx, "var")
+	end := findVariableBlockEnd(lines, *idx)
 	varLines := lines[*idx : end+1]
-	*blocks = append(*blocks, makeBlock(tk.LocalVar,
+	*blocks = append(*blocks, makeVariableBlock(tk.Local,
 		trimBlankLines(consumeWithAbove(linkedAbove, varLines...)),
 	))
 	*idx = end

@@ -165,9 +165,9 @@ func lint_files_mt(files []string, verbose bool, dry bool) (total int, errored i
 	ch := make(chan error)
 	not_completed := 0
 
+	ErrWg.Add(1)
 	go func() {
-		ErrWg.Add(1)
-		defer	ErrWg.Done()
+		defer ErrWg.Done()
 		for state := range ch {
 			printer.PrintWarning(state.Error())
 			not_completed++

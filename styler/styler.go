@@ -42,27 +42,27 @@ func LintFile(path string, ch chan error, verbose bool, dry bool) {
 		return
 	}
 
+	printTokens := func(msg string) {
+		println("<== " + msg)
+		for _, t := range tokens {
+			print(t.BlockTypeToString() + ":\n")
+			printer.PPrintArray(t.GetContent())
+		}
+	}
+
 	if verbose {
 		// Print before changes
-		println("<== Tokenisation")
-		for _, t := range tokens {
-			print(tk.BlockTypeToString(t.Type) + ":\n")
-			printer.PPrintArray(t.Content)
-		}
+		printTokens("Tokenisation")
 	}
 
 	// Sort blocks by enum order
 	slices.SortStableFunc(tokens, func(a, b tk.Block) int {
-		return int(a.Type) - int(b.Type)
+		return int(a.GetType()) - int(b.GetType())
 	})
 
 	if verbose {
 		// After
-		println("<== Tokens after sort")
-		for _, t := range tokens {
-			print(tk.BlockTypeToString(t.Type) + ":\n")
-			printer.PPrintArray(t.Content)
-		}
+		printTokens("Tokens after sort")
 	}
 
 	det := Detokenise(tokens)
@@ -100,7 +100,7 @@ func LintFile(path string, ch chan error, verbose bool, dry bool) {
 func Detokenise(tokens []tk.Block) string {
 	file := ""
 	for i, token := range tokens {
-		file += strings.Join(token.Content, "\n")
+		file += strings.Join(token.GetContent(), "\n")
 
 		if i+1 == len(tokens) {
 			break
@@ -109,7 +109,7 @@ func Detokenise(tokens []tk.Block) string {
 		// Start with 1 newline
 		newlines := 2
 
-		switch token.Type {
+		switch token.GetType() {
 		case tk.ClassName:
 			newlines--
 		case tk.Function, tk.Ready, tk.Init:
