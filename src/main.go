@@ -15,9 +15,6 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// TODO
-// Fix race condition on printing errors and exiting
-
 const ROOT = "./"
 
 func main() {
@@ -49,8 +46,17 @@ func main() {
 				Name:  "no-confirm",
 				Usage: "don't ask for user confirmation",
 			},
+			&cli.BoolFlag{
+				Name:  "no-ansi",
+				Usage: "don't print with ansi escape codes",
+				Value: false,
+			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
+			if cmd.Bool("no-ansi") {
+				printer.UseANSI = false
+			}
+
 			var input_path string
 			if cmd.NArg() == 1 {
 				input_path = cmd.Args().Get(0)
@@ -77,7 +83,7 @@ func main() {
 					printer.PrintError("Not continuing, could not open all files in project at " + input_path)
 					os.Exit(1)
 				} else if len(files) == 0 {
-					printer.PrintError("Not continuing, no GDScript files found." + input_path)
+					printer.PrintError("Not continuing, no GDScript files found in: \"" + input_path + "\"")
 					os.Exit(1)
 				}
 
@@ -160,15 +166,14 @@ func backup_files(local_root string, locations []string) error {
 
 func lint_files_mt(files []string, verbose bool, dry bool) (total int, errored int) {
 	var wg sync.WaitGroup
-	var ErrWg sync.WaitGroup
-	ErrWg.Add(1)
+	var error_wg sync.WaitGroup
 
 	ch := make(chan error)
 	not_completed := 0
 
+	error_wg.Add(1)
 	go func() {
-
-		defer ErrWg.Done()
+		defer error_wg.Done()
 		for state := range ch {
 			printer.PrintWarning(state.Error())
 			not_completed++
@@ -187,8 +192,7 @@ func lint_files_mt(files []string, verbose bool, dry bool) (total int, errored i
 	wg.Wait()
 
 	close(ch)
-
-	ErrWg.Wait()
+	error_wg.Wait()
 
 	return len(files), not_completed
 }

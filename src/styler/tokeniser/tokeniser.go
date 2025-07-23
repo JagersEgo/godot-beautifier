@@ -91,7 +91,7 @@ func consumeWithAbove(linked_above *[]string, content ...string) []string {
 	*linked_above = nil
 
 	if len(trimmedAbove) == 0 {
-		return *&content
+		return content
 	}
 	out := slices.Concat(trimmedAbove, content)
 	return out
@@ -158,17 +158,17 @@ outer:
 	return i - 1
 }
 
-// Find when a segment of lines that start with `id` ends
-func findSegmentEnd(lines []string, idx int, id string) int {
-	i := idx + 1
-	for ; i < len(lines); i++ {
-		// stop when indent back to <= base or blank
-		if !strings.HasPrefix(lines[i], id) {
-			return i - 1
-		}
-	}
-	return i
-}
+// // Find when a segment of lines that start with `id` ends
+// func findSegmentEnd(lines []string, idx int, id string) int {
+// 	i := idx + 1
+// 	for ; i < len(lines); i++ {
+// 		// stop when indent back to <= base or blank
+// 		if !strings.HasPrefix(lines[i], id) {
+// 			return i - 1
+// 		}
+// 	}
+// 	return i
+// }
 
 func find_docstring_end(lines []string, idx int) int {
 	i := idx + 1
@@ -271,11 +271,12 @@ func handleClass(_ string, lines []string, idx *int, blocks *[]tk.Block, linkedA
 	*idx = end
 }
 func handleStatic(line string, lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]string) {
-	if line[7] == 'v' {
+	switch line[7] {
+	case 'v':
 		handleStaticVar_(line, lines, idx, blocks, linkedAbove)
-	} else if line[7] == 'f' {
+	case 'f':
 		handleStaticFunction_(line, lines, idx, blocks, linkedAbove)
-	} else {
+	default:
 		handleUnknown(line, lines, idx, blocks, linkedAbove)
 	}
 }
@@ -336,10 +337,6 @@ func handleReady_(lines []string, idx *int, blocks *[]tk.Block, linkedAbove *[]s
 	*idx = end
 }
 func handleComment(line string, _ []string, _ *int, blocks *[]tk.Block, linkedAbove *[]string) {
-	if line == "# Called when the node enters the scene tree for the first time." || line == "# Called every frame. 'delta' is the elapsed time since the previous frame." {
-		return
-	}
-
 	*linkedAbove = append(*linkedAbove, line)
 }
 func handleUnknown(line string, _ []string, _ *int, blocks *[]tk.Block, linkedAbove *[]string) {
