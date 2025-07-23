@@ -161,13 +161,14 @@ func backup_files(local_root string, locations []string) error {
 func lint_files_mt(files []string, verbose bool, dry bool) (total int, errored int) {
 	var wg sync.WaitGroup
 	var ErrWg sync.WaitGroup
+	ErrWg.Add(1)
 
 	ch := make(chan error)
 	not_completed := 0
 
 	go func() {
-		ErrWg.Add(1)
-		defer	ErrWg.Done()
+
+		defer ErrWg.Done()
 		for state := range ch {
 			printer.PrintWarning(state.Error())
 			not_completed++
