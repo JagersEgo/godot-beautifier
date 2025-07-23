@@ -27,13 +27,14 @@ Clone the repository and run the tool with go
 ## Example
 Before (Bad layout and spacing):
 ```Python
-extends node
+extends Node3D
+class_name enemy
 
 # Move
 func _process(delta: float) -> void:
 	position.x += 1
 	var foo = "bar"
-	print(banana)
+	print('banana')
 
 # Fruits block
 @onready var fruit0 = "apple"
@@ -51,7 +52,7 @@ func _process(delta: float) -> void:
 @export var also_speed: int = 0
 
 
-class_name enemy
+
 
 func foo(delta: float) -> void:
 	position.y += 1
@@ -63,7 +64,7 @@ func bar(delta: float) -> void:
 After:
 ```Python
 class_name enemy
-extends node
+extends Node3D
 
 # Attack range
 # Yeah thats the attack range
@@ -84,7 +85,7 @@ extends node
 func _process(delta: float) -> void:
 	position.x += 1
 	var foo = "bar"
-	print(banana)
+	print('banana')
 
 
 func foo(delta: float) -> void:
